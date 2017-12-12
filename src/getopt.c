@@ -345,7 +345,22 @@ getopt_internal(int nargc, char * const *nargv, const char *options,
 	 *                 optreset != 0 for GNU compatibility.
 	 */
 	if (posixly_correct == -1 || optreset != 0)
-		posixly_correct = (getenv("POSIXLY_CORRECT") != NULL);
+    {
+        /*
+        * Added in checking this macro to use the MSDN library when available so that warnings/errors aren't generated.
+        * You can remove this and add _CRT_SECURE_NO_WARNINGS to the preprocessor to remove the warnings/errors as well.
+        */
+#if defined (_WIN32) && defined(_MSC_VER) && !defined (_CRT_SECURE_NO_WARNINGS)
+        char *buffer = NULL;
+        size_t size = 0;
+        if (_dupenv_s(&buffer, &size, "POSIXLY_CORRECT") == 0)
+        {
+            posixly_correct = (buffer != NULL);
+        }
+#else
+        posixly_correct = (getenv("POSIXLY_CORRECT") != NULL);
+#endif
+    }
 	if (*options == '-')
 		flags |= FLAG_ALLARGS;
 	else if (posixly_correct || *options == '+')
