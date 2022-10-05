@@ -5,7 +5,8 @@ project(
   license : ['ISC', 'BSD-3-Clause'],
   meson_version: '>= 0.55',
   default_options: [
-    'warning_level=1',
+    'warning_level=3',
+    'default_library=static'
   ],
 )
 
