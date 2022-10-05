@@ -156,7 +156,7 @@ static char *getopt_getprogname(void)
 	#elif defined (HAS_GETPROGNAME)
 		return strdup(getprogname());
 	#elif defined (HAS_GETEXECNAME)
-		char *execfullname = strdup(getexecname);
+		char *execfullname = strdup(getexecname());
 		char *execname = strdup(basename(execfullname));//basename can return internal pointers, modified memory, may get changed, so dup it to return this just in case -TJE
 		free(execfullname);
 		return execname;

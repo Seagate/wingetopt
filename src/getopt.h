@@ -47,8 +47,6 @@
 #if defined (_WIN32)
 /* All the headers include this file. */
 #include <crtdefs.h>
-#else
-#include <sys/cdefs.h>
 #endif
 
 #if defined (_WIN32) && defined( WINGETOPT_SHARED_LIB )
