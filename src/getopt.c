@@ -58,8 +58,8 @@
 #if defined (_WIN32)
 #include <windows.h>
 #else
-#include <libgen.h> //for basename
-#endif //_WIN32
+#include <libgen.h> /*for basename*/
+#endif /*_WIN32*/
 
 #define	REPLACE_GETOPT		/* use this getopt as the system getopt(3) */
 
@@ -70,10 +70,10 @@ int	optopt = '?';		/* character checked for validity */
 #if defined (__MINGW32__)
 #undef	optreset		/* see getopt.h */
 #define	optreset		__mingw_optreset
-#endif //__MINGW32__
+#endif /*__MINGW32__*/
 int	optreset;		/* reset getopt */
 char    *optarg;		/* argument associated with option */
-#endif //REPLACE_GETOPT
+#endif /*REPLACE_GETOPT*/
 
 #define PRINT_ERROR	((opterr) && (*options != ':'))
 
@@ -86,38 +86,44 @@ char    *optarg;		/* argument associated with option */
 #define	BADARG		((*options == ':') ? (int)':' : (int)'?')
 #define	INORDER 	(int)1
 
-#if defined (_WIN32) 
-	#if !defined (__CYGWIN__)
-		#define __progname __argv[0]
-	#else //__CYGWIN
+/*
+ * expand this long list of definitions for systems that DO have __progname
+ * create an elif defined list for systems that have something similar, but named differently or other functions
+ * check UEFI first since it's cross compiled from Win or Lin which will contain other preprocessor flags
+ * Try relying on what is provided by these systems instead of using our own global whenever necessary
+ */
+#if defined (HAS_GETPROGNAME) || defined (UEFI_C_SOURCE) || defined (__APPLE__)
+	/* 
+	 * this case has the function getprogname available to use
+	 * note: I have found references that getprogname exists in solaris 11+, but using the getexecname instead for all solaris versions at this time-TJE
+	 * The BSDs also have this function. If necessary, add version checks to the previous case to fall into here. I'm fairly certain those are not necessary 
+	 * at this point as the references I have point to only needing this check for very old versions-TJE
+	 */
+	#if !defined (HAS_GETPROGNAME)
+		#define HAS_GETPROGNAME
+	#endif /*HAS_GETPROGNAME*/
+#elif defined (HAS_PROGNAME) || defined (__linux__) || defined (__FreeBSD__) || defined (__OpenBSD__) || defined (__NetBSD__) || defined (__DragonFly__) || defined (__QNX__) || defined (__CYGWIN__)
+	/*This case has the __progname available to use*/
+	#if defined (__CYGWIN__)
 		extern char __declspec(dllimport) *__progname;
-	#endif //__CYGWIN
+	#else
+		extern const char *__progname;
+	#endif
 	#if !defined (HAS_PROGNAME)
 		#define HAS_PROGNAME
+	#endif /*HAS_PROGNAME*/
+#elif defined (HAS_ARGV0) || defined (_WIN32) && !defined (__CYGWIN__)
+	#if !defined (HAS_ARGV0)
+		#define HAS_ARGV0
 	#endif
-#else //Not windows
-	//expand this long list of definitions for systems that DO have __progname
-	//create an elif defined list for systems that have something similar, but named differently
-	#if defined (HAS_PROGNAME) || defined (__linux__) || defined (__FreeBSD__) || defined (__OpenBSD__) || defined (__NetBSD__) || defined (__DragonFly__) || defined (__QNX__)
-		//This case has the __progname available to use
-		extern const char *__progname;
-		#if !defined (HAS_PROGNAME)
-			#define HAS_PROGNAME
-		#endif //HAS_PROGNAME
-	#elif defined (__APPLE__)
-		//this case has the function getprogname available to use
-		//note: I have found references that getprogname exists in solaris 11+, but using the getexecname instead -TJE
-		//The BSDs also have this function. If necessary, add version checks to the previous case to fall into here. I'm fairly certain those are not necessary 
-		//  at this point as the references I have point to only needing this check for very old versions-TJE
-		#if !defined (HAS_GETPROGNAME)
-			#define HAS_GETPROGNAME
-		#endif //HAS_GETPROGNAME
-	#elif defined (__sun)
-		#if !defined (HAS_GETEXECNAME)
-			#define HAS_GETEXECNAME
-		#endif //HAS_GETEXECNAME
-	#endif //
-#endif //_WIN32
+#elif defined (HAS_GETEXECNAME) || defined (__sun)
+	#if !defined (HAS_GETEXECNAME)
+		#define HAS_GETEXECNAME
+	#endif /*HAS_GETEXECNAME*/
+#else
+	#define NEED_PROGNAME
+	/*This will define our own global to store the programe name into -TJE*/
+#endif /*Checking PROGNAME capabilities*/
 
 #ifdef __CYGWIN__
 static char EMSG[] = "";
@@ -146,21 +152,32 @@ static const char noarg[] = "option doesn't take an argument -- %.*s";
 static const char illoptchar[] = "unknown option -- %c";
 static const char illoptstring[] = "unknown option -- %s";
 
+#if defined (NEED_PROGNAME)
+	char *getopt_progname;
+#endif /*NEED_PROGNAME*/
+
 static char *getopt_getprogname(void)
 {
-	//TODO: FreeBSD, NetBSD, mac os, solaris 11 have the function getprogname that can be used
-	//      AIX look up process PID and get the process name with getprocs64. May need to truncate it to match expectations
-	//      Other OSs may or may not have a way to do this. Just return NULL if no other method is known
 	#if defined (HAS_PROGNAME)
 		return strdup(__progname);
+	#elif defined (HAS_ARGV0)
+		/*Win32 most likely*/
+		#if defined (_MSC_VER)
+			return _strdup(__argv[0]);
+		#else /*mingw???*/
+			return strdup(__argv[0]);
+		#endif /*_MSC_VER*/
 	#elif defined (HAS_GETPROGNAME)
 		return strdup(getprogname());
 	#elif defined (HAS_GETEXECNAME)
 		char *execfullname = strdup(getexecname());
-		char *execname = strdup(basename(execfullname));//basename can return internal pointers, modified memory, may get changed, so dup it to return this just in case -TJE
+		char *execname = strdup(basename(execfullname)); /* basename can return internal pointers, modified memory, may get changed, so dup it to return this just in case -TJE */
 		free(execfullname);
 		return execname;
-	#else //This is the "we don't know how to get this" case.
+	#elif (NEED_PROGNAME)
+		/* own global declared that can be accessed -TJE */
+		return strdup(getopt_progname);
+	#else /*This is the "we don't know how to get this" case. */
 		#if defined (_DEBUG)
 			return strdup("Unknown progname");
 		#else
@@ -169,8 +186,10 @@ static char *getopt_getprogname(void)
 	#endif
 }
 
-//some systems have warnx, _vwarnx from err.h, but not all have this.
-//defining our own versions here to help prevent them from coliding.
+/* 
+ * some systems have warnx, _vwarnx from err.h, but not all have this.
+ * defining our own versions here to help prevent them from coliding.
+ */
 
 static void
 getopt_vwarnx(const char *fmt,va_list ap)
@@ -389,6 +408,11 @@ getopt_internal(int nargc, char * const *nargv, const char *options,
 	const char *oli;				/* option letter list index */
 	int optchar, short_too;
 	static int posixly_correct = -1;
+
+	#if defined (NEED_PROGNAME)
+		/* store progam name before any other parsing is done */
+		getopt_progname = nargv[0];
+	#endif //NEED_PROGNAME
 
 	if (options == NULL)
 		return (-1);
