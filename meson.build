@@ -15,10 +15,7 @@ compiler = meson.get_compiler('c')
 c_args = []
 
 if compiler.get_id() == 'msvc'
-  c_args += [
-    '-D_CRT_SECURE_NO_WARNINGS',
-  ]
-
+  # -D_CRT_SECURE_NO_WARNINGS is not needed as the code checks flags to switch to MSFT preferred functions as needed-TJE
   if get_option('default_library') == 'shared'
     c_args += [
       '-DBUILDING_WINGETOPT_DLL',
