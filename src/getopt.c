@@ -174,7 +174,7 @@ static char *getopt_getprogname(void)
 		char *execname = strdup(basename(execfullname)); /* basename can return internal pointers, modified memory, may get changed, so dup it to return this just in case -TJE */
 		free(execfullname);
 		return execname;
-	#elif (NEED_PROGNAME)
+	#elif defined (NEED_PROGNAME)
 		/* own global declared that can be accessed -TJE */
 		return strdup(getopt_progname);
 	#else /*This is the "we don't know how to get this" case. */
