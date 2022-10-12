@@ -1,4 +1,4 @@
-
+# Copyright 2022 Seagate Technology and/or its Affiliates 
 # This is a handwritten GNUMakefile for wingetopt
 # This was done so as not to collide with the makefile output from CMake when CMake is used.
 # This makefile is for projects unable to use cmake or meson, but support GNUMake

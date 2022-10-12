@@ -1,3 +1,5 @@
+# Modifications Copyright 2022 Seagate Technology and/or its Affiliates
+
 project(
   'wingetopt',
   'c',
