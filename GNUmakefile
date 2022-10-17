@@ -14,7 +14,7 @@ CFLAGS ?= -Wall -Wextra -c -fPIC -I.
 SRC_FILES = $(SRC_DIR)/getopt.c
 LIB_OBJ_FILES = $(SRC_FILES:.c=.o)
 STATIC_LIB = lib$(NAME).a
-SHARED_LIB = lin$(NAME).so
+SHARED_LIB = lib$(NAME).so
 
 FILE_OUTPUT_DIR=lib
 
