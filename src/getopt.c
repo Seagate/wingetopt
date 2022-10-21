@@ -441,7 +441,7 @@ getopt_internal(int nargc, char * const *nargv, const char *options,
 			* If the __STDC_SECURE_LIB__ is defined, this will be used and avoid the warning. This is Microsoft's own
 			* definition that is automatically defined when this is available -TJE
             */
-#if defined (_WIN32) && defined(__STDC_SECURE_LIB__)
+#if defined (_WIN32) && defined (_MSC_VER) && defined(__STDC_SECURE_LIB__)
             char *buffer = NULL;
             size_t size = 0;
             if (_dupenv_s(&buffer, &size, "POSIXLY_CORRECT") == 0)
