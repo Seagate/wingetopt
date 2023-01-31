@@ -447,6 +447,8 @@ getopt_internal(int nargc, char * const *nargv, const char *options,
             if (_dupenv_s(&buffer, &size, "POSIXLY_CORRECT") == 0)
             {
                 posixly_correct = (buffer != NULL);
+				if (buffer)
+					free(buffer);
             }
 #else
             posixly_correct = (getenv("POSIXLY_CORRECT") != NULL);
