@@ -1,8 +1,10 @@
-/*	$OpenBSD: getopt_long.c,v 1.23 2007/10/31 12:34:57 chl Exp $	*/
+/* Modifications Copyright 2022 Seagate Technology and/or its Affiliates */
+
+/*	$OpenBSD: getopt_long.c,v 1.32 2020/05/27 22:25:09 schwarze Exp $	*/
 /*	$NetBSD: getopt_long.c,v 1.15 2002/01/31 22:43:40 tv Exp $	*/
 
 /*
- * Copyright (c) 2002 Todd C. Miller <Todd.Miller@courtesan.com>
+ * Copyright (c) 2002 Todd C. Miller <millert@openbsd.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -55,7 +57,11 @@
 #include <getopt.h>
 #include <stdarg.h>
 #include <stdio.h>
+#if defined (_WIN32)
 #include <windows.h>
+#else
+#include <libgen.h> /*for basename*/
+#endif /*_WIN32*/
 
 #define	REPLACE_GETOPT		/* use this getopt as the system getopt(3) */
 
@@ -63,11 +69,13 @@
 int	opterr = 1;		/* if error message should be printed */
 int	optind = 1;		/* index into parent argv vector */
 int	optopt = '?';		/* character checked for validity */
+#if defined (__MINGW32__)
 #undef	optreset		/* see getopt.h */
 #define	optreset		__mingw_optreset
+#endif /*__MINGW32__*/
 int	optreset;		/* reset getopt */
 char    *optarg;		/* argument associated with option */
-#endif
+#endif /*REPLACE_GETOPT*/
 
 #define PRINT_ERROR	((opterr) && (*options != ':'))
 
@@ -80,11 +88,44 @@ char    *optarg;		/* argument associated with option */
 #define	BADARG		((*options == ':') ? (int)':' : (int)'?')
 #define	INORDER 	(int)1
 
-#ifndef __CYGWIN__
-#define __progname __argv[0]
+/*
+ * expand this long list of definitions for systems that DO have __progname
+ * create an elif defined list for systems that have something similar, but named differently or other functions
+ * check UEFI first since it's cross compiled from Win or Lin which will contain other preprocessor flags
+ * Try relying on what is provided by these systems instead of using our own global whenever necessary
+ */
+#if defined (HAS_GETPROGNAME) || defined (UEFI_C_SOURCE) || defined (__APPLE__)
+	/* 
+	 * this case has the function getprogname available to use
+	 * note: I have found references that getprogname exists in solaris 11+, but using the getexecname instead for all solaris versions at this time-TJE
+	 * The BSDs also have this function. If necessary, add version checks to the previous case to fall into here. I'm fairly certain those are not necessary 
+	 * at this point as the references I have point to only needing this check for very old versions-TJE
+	 */
+	#if !defined (HAS_GETPROGNAME)
+		#define HAS_GETPROGNAME
+	#endif /*HAS_GETPROGNAME*/
+#elif defined (HAS_PROGNAME) || defined (__linux__) || defined (__FreeBSD__) || defined (__OpenBSD__) || defined (__NetBSD__) || defined (__DragonFly__) || defined (__QNX__) || defined (__CYGWIN__)
+	/*This case has the __progname available to use*/
+	#if defined (__CYGWIN__)
+		extern char __declspec(dllimport) *__progname;
+	#else
+		extern const char *__progname;
+	#endif
+	#if !defined (HAS_PROGNAME)
+		#define HAS_PROGNAME
+	#endif /*HAS_PROGNAME*/
+#elif defined (HAS_ARGV0) || defined (_WIN32) && !defined (__CYGWIN__)
+	#if !defined (HAS_ARGV0)
+		#define HAS_ARGV0
+	#endif
+#elif defined (HAS_GETEXECNAME) || defined (__sun)
+	#if !defined (HAS_GETEXECNAME)
+		#define HAS_GETEXECNAME
+	#endif /*HAS_GETEXECNAME*/
 #else
-extern char __declspec(dllimport) *__progname;
-#endif
+	#define NEED_PROGNAME
+	/*This will define our own global to store the programe name into -TJE*/
+#endif /*Checking PROGNAME capabilities*/
 
 #ifdef __CYGWIN__
 static char EMSG[] = "";
@@ -95,7 +136,7 @@ static char EMSG[] = "";
 static int getopt_internal(int, char * const *, const char *,
 			   const struct option *, int *, int);
 static int parse_long_options(char * const *, const char *,
-			      const struct option *, int *, int);
+			      const struct option *, int *, int, int);
 static int gcd(int, int);
 static void permute_args(int, int, int, char * const *);
 
@@ -113,21 +154,66 @@ static const char noarg[] = "option doesn't take an argument -- %.*s";
 static const char illoptchar[] = "unknown option -- %c";
 static const char illoptstring[] = "unknown option -- %s";
 
-static void
-_vwarnx(const char *fmt,va_list ap)
+#if defined (NEED_PROGNAME)
+	char *getopt_progname;
+#endif /*NEED_PROGNAME*/
+
+static char *getopt_getprogname(void)
 {
-  (void)fprintf(stderr,"%s: ",__progname);
+	#if defined (HAS_PROGNAME)
+		return strdup(__progname);
+	#elif defined (HAS_ARGV0)
+		/*Win32 most likely*/
+		#if defined (_MSC_VER)
+			return _strdup(__argv[0]);
+		#else /*mingw???*/
+			return strdup(__argv[0]);
+		#endif /*_MSC_VER*/
+	#elif defined (HAS_GETPROGNAME)
+		return strdup(getprogname());
+	#elif defined (HAS_GETEXECNAME)
+		char *execfullname = strdup(getexecname());
+		char *execname = strdup(basename(execfullname)); /* basename can return internal pointers, modified memory, may get changed, so dup it to return this just in case -TJE */
+		free(execfullname);
+		return execname;
+	#elif defined (NEED_PROGNAME)
+		/* own global declared that can be accessed -TJE */
+		return strdup(getopt_progname);
+	#else /*This is the "we don't know how to get this" case. */
+		#if defined (_DEBUG)
+			return strdup("Unknown progname");
+		#else
+			return strdup("");
+		#endif
+	#endif
+}
+
+/* 
+ * some systems have warnx, _vwarnx from err.h, but not all have this.
+ * defining our own versions here to help prevent them from coliding.
+ */
+
+static void
+getopt_vwarnx(const char *fmt,va_list ap)
+{
+  char *progname = getopt_getprogname();
+  (void)fprintf(stderr,"%s: ",progname);
   if (fmt != NULL)
     (void)vfprintf(stderr,fmt,ap);
   (void)fprintf(stderr,"\n");
+  if (progname)
+  {
+    free(progname);
+    progname = NULL;
+  }
 }
 
 static void
-warnx(const char *fmt,...)
+getopt_warnx(const char *fmt,...)
 {
   va_list ap;
   va_start(ap,fmt);
-  _vwarnx(fmt,ap);
+  getopt_vwarnx(fmt,ap);
   va_end(ap);
 }
 
@@ -193,20 +279,16 @@ permute_args(int panonopt_start, int panonopt_end, int opt_end,
  */
 static int
 parse_long_options(char * const *nargv, const char *options,
-	const struct option *long_options, int *idx, int short_too)
+	const struct option *long_options, int *idx, int short_too, int flags)
 {
 	char *current_argv, *has_equal;
 	size_t current_argv_len;
-	int i, ambiguous, match;
-
-#define IDENTICAL_INTERPRETATION(_x, _y)                                \
-	(long_options[(_x)].has_arg == long_options[(_y)].has_arg &&    \
-	 long_options[(_x)].flag == long_options[(_y)].flag &&          \
-	 long_options[(_x)].val == long_options[(_y)].val)
+	int i, match, exact_match, second_partial_match;
 
 	current_argv = place;
 	match = -1;
-	ambiguous = 0;
+	exact_match = 0;
+	second_partial_match = 0;
 
 	optind++;
 
@@ -226,7 +308,7 @@ parse_long_options(char * const *nargv, const char *options,
 		if (strlen(long_options[i].name) == current_argv_len) {
 			/* exact match */
 			match = i;
-			ambiguous = 0;
+			exact_match = 1;
 			break;
 		}
 		/*
@@ -236,15 +318,18 @@ parse_long_options(char * const *nargv, const char *options,
 		if (short_too && current_argv_len == 1)
 			continue;
 
-		if (match == -1)	/* partial match */
+		if (match == -1)	/* first partial match */
 			match = i;
-		else if (!IDENTICAL_INTERPRETATION(i, match))
-			ambiguous = 1;
+		else if ((flags & FLAG_LONGONLY) ||
+		    long_options[i].has_arg != long_options[match].has_arg ||
+		    long_options[i].flag != long_options[match].flag ||
+		    long_options[i].val != long_options[match].val)
+			second_partial_match = 1;
 	}
-	if (ambiguous) {
+	if (!exact_match && second_partial_match) {
 		/* ambiguous abbreviation */
 		if (PRINT_ERROR)
-			warnx(ambig, (int)current_argv_len,
+			getopt_warnx(ambig, (int)current_argv_len,
 			     current_argv);
 		optopt = 0;
 		return (BADCH);
@@ -253,7 +338,7 @@ parse_long_options(char * const *nargv, const char *options,
 		if (long_options[match].has_arg == no_argument
 		    && has_equal) {
 			if (PRINT_ERROR)
-				warnx(noarg, (int)current_argv_len,
+				getopt_warnx(noarg, (int)current_argv_len,
 				     current_argv);
 			/*
 			 * XXX: GNU sets optopt to val regardless of flag
@@ -283,7 +368,7 @@ parse_long_options(char * const *nargv, const char *options,
 			 * should be generated.
 			 */
 			if (PRINT_ERROR)
-				warnx(recargstring,
+				getopt_warnx(recargstring,
 				    current_argv);
 			/*
 			 * XXX: GNU sets optopt to val regardless of flag
@@ -301,7 +386,7 @@ parse_long_options(char * const *nargv, const char *options,
 			return (-1);
 		}
 		if (PRINT_ERROR)
-			warnx(illoptstring, current_argv);
+			getopt_warnx(illoptstring, current_argv);
 		optopt = 0;
 		return (BADCH);
 	}
@@ -312,7 +397,6 @@ parse_long_options(char * const *nargv, const char *options,
 		return (0);
 	} else
 		return (long_options[match].val);
-#undef IDENTICAL_INTERPRETATION
 }
 
 /*
@@ -326,6 +410,11 @@ getopt_internal(int nargc, char * const *nargv, const char *options,
 	const char *oli;				/* option letter list index */
 	int optchar, short_too;
 	static int posixly_correct = -1;
+
+	#if defined (NEED_PROGNAME)
+		/* store progam name before any other parsing is done */
+		getopt_progname = nargv[0];
+	#endif //NEED_PROGNAME
 
 	if (options == NULL)
 		return (-1);
@@ -345,22 +434,26 @@ getopt_internal(int nargc, char * const *nargv, const char *options,
 	 *                 optreset != 0 for GNU compatibility.
 	 */
 	if (posixly_correct == -1 || optreset != 0)
-    {
-        /*
-        * Added in checking this macro to use the MSDN library when available so that warnings/errors aren't generated.
-        * You can remove this and add _CRT_SECURE_NO_WARNINGS to the preprocessor to remove the warnings/errors as well.
-        */
-#if defined (_WIN32) && defined(_MSC_VER) && !defined (_CRT_SECURE_NO_WARNINGS)
-        char *buffer = NULL;
-        size_t size = 0;
-        if (_dupenv_s(&buffer, &size, "POSIXLY_CORRECT") == 0)
         {
-            posixly_correct = (buffer != NULL);
-        }
+            /*
+            * Added in checking this macro to use the MSDN library when available so that warnings/errors aren't generated.
+            * You can remove this and add _CRT_SECURE_NO_WARNINGS to the preprocessor to remove the warnings/errors as well.
+			* If the __STDC_SECURE_LIB__ is defined, this will be used and avoid the warning. This is Microsoft's own
+			* definition that is automatically defined when this is available -TJE
+            */
+#if defined (_WIN32) && defined (_MSC_VER) && defined(__STDC_SECURE_LIB__)
+            char *buffer = NULL;
+            size_t size = 0;
+            if (_dupenv_s(&buffer, &size, "POSIXLY_CORRECT") == 0)
+            {
+                posixly_correct = (buffer != NULL);
+				if (buffer)
+					free(buffer);
+            }
 #else
-        posixly_correct = (getenv("POSIXLY_CORRECT") != NULL);
+            posixly_correct = (getenv("POSIXLY_CORRECT") != NULL);
 #endif
-    }
+        }
 	if (*options == '-')
 		flags |= FLAG_ALLARGS;
 	else if (posixly_correct || *options == '+')
@@ -462,7 +555,7 @@ start:
 			short_too = 1;		/* could be short option too */
 
 		optchar = parse_long_options(nargv, options, long_options,
-		    idx, short_too);
+		    idx, short_too, flags);
 		if (optchar != -1) {
 			place = EMSG;
 			return (optchar);
@@ -482,7 +575,7 @@ start:
 		if (!*place)
 			++optind;
 		if (PRINT_ERROR)
-			warnx(illoptchar, optchar);
+			getopt_warnx(illoptchar, optchar);
 		optopt = optchar;
 		return (BADCH);
 	}
@@ -493,13 +586,13 @@ start:
 		else if (++optind >= nargc) {	/* no arg */
 			place = EMSG;
 			if (PRINT_ERROR)
-				warnx(recargchar, optchar);
+				getopt_warnx(recargchar, optchar);
 			optopt = optchar;
 			return (BADARG);
 		} else				/* white space */
 			place = nargv[optind];
 		optchar = parse_long_options(nargv, options, long_options,
-		    idx, 0);
+		    idx, 0, flags);
 		place = EMSG;
 		return (optchar);
 	}
@@ -514,7 +607,7 @@ start:
 			if (++optind >= nargc) {	/* no arg */
 				place = EMSG;
 				if (PRINT_ERROR)
-					warnx(recargchar, optchar);
+					getopt_warnx(recargchar, optchar);
 				optopt = optchar;
 				return (BADARG);
 			} else

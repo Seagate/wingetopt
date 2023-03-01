@@ -5,7 +5,9 @@ option(BUILD_SHARED_LIBS "Build the shared library" OFF)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+if(WIN32)
+  add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+endif()
 
 if(BUILD_SHARED_LIBS)
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
