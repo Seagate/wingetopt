@@ -197,7 +197,8 @@ static void
 getopt_vwarnx(const char *fmt,va_list ap)
 {
   char *progname = getopt_getprogname();
-  (void)fprintf(stderr,"%s: ",progname);
+  if (progname)
+    (void)fprintf(stderr,"%s: ",progname);
   if (fmt != NULL)
     (void)vfprintf(stderr,fmt,ap);
   (void)fprintf(stderr,"\n");
