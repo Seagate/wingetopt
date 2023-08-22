@@ -1,11 +1,12 @@
 # Modifications Copyright 2022 Seagate Technology and/or its Affiliates
 
+# Setting meson version >=0.53 since that was tested and worked as expected on one system inside Seagate
 project(
   'wingetopt',
   'c',
   version: '0.95',
   license : ['ISC', 'BSD-3-Clause'],
-  meson_version: '>= 0.55',
+  meson_version: '>= 0.53',
   default_options: [
     'warning_level=3',
     'default_library=static'
