@@ -4,7 +4,7 @@
 project(
   'wingetopt',
   'c',
-  version: '0.95',
+  version: '0.96',
   license : ['ISC', 'BSD-3-Clause'],
   meson_version: '>= 0.53',
   default_options: [
