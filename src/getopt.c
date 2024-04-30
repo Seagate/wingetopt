@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: 0BSD AND BSD-2-Clause */
 /* Modifications Copyright 2022 Seagate Technology and/or its Affiliates */
 
 /*	$OpenBSD: getopt_long.c,v 1.32 2020/05/27 22:25:09 schwarze Exp $	*/
