@@ -11,6 +11,7 @@ INC_DIR=-I./src/
 CC ?= gcc
 AR ?= ar
 CFLAGS ?= -Wall -Wextra -c -fPIC -I.
+CFLAGS += -c -fPIC -I.
 SRC_FILES = $(SRC_DIR)/getopt.c
 LIB_OBJ_FILES = $(SRC_FILES:.c=.o)
 STATIC_LIB = lib$(NAME).a
@@ -34,7 +35,7 @@ shared: $(LIB_OBJ_FILES)
 	$(CC) -shared $(LIB_OBJ_FILES) -o $(FILE_OUTPUT_DIR)/$(SHARED_LIB)
 
 clean:
-	rm -f $(FILE_OUTPUT_DIR)/$(STATIC_LIB) $(FILE_OUTPUT_DIR)/$(SHARED_LIB) *.o $(SRC_DIR)*.o
+	rm -f $(FILE_OUTPUT_DIR)/$(STATIC_LIB) $(FILE_OUTPUT_DIR)/$(SHARED_LIB) *.o $(SRC_DIR)/*.o
 	rm -rf $(FILE_OUTPUT_DIR)
 
 mkoutputdir:
