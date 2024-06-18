@@ -210,6 +210,9 @@ if compiler.has_function('getenv_s', prefix : '#define __STDC_WANT_LIB_EXT1__ 1\
 elif compiler.has_function('secure_getenv', prefix : '#define _GNU_SOURCE\n#include <stdlib.h>\n')
   #TODO: check if user has disabled using this function through compile option
   add_project_arguments(['-D_GNU_SOURCE', '-DHAVE_SECURE_GETENV'], language : 'c')
+elif compiler.has_function('__secure_getenv', prefix : '#define _GNU_SOURCE\n#include <stdlib.h>\n')
+  #TODO: check if user has disabled using this function through compile option
+  add_project_arguments(['-D_GNU_SOURCE', '-DHAVE___SECURE_GETENV'], language : 'c')
 endif
 
 wingetopt_lib = library(
