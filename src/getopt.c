@@ -60,7 +60,7 @@
 #include <stdio.h>
 #if defined (HAVE_STD_INT) || (defined __STDC__ && defined __STDC_VERSION__ &&  __STDC_VERSION__ >= 199901L)
 #include <stdint.h>
-#else
+#elif !defined (_UINTPTR_T_DEFINED) && !defined (UINTPTR_MAX)
     /* uintptr_t does not exist so need to define what type it is as best we can */
     /* Checking known data model macros first and Windows predefined macros */
     #if defined (__LP64__) || defined (_LP64) || defined (__ILP64__) || defined (_ILP64)
@@ -553,6 +553,14 @@ getopt_internal(int nargc, char * const *nargv, const char *options,
          * See https://linux.die.net/man/3/secure_getenv for reasons to disable it.
         */
         posixly_correct = (secure_getenv(posixlycorrectenv) != NULL);
+#elif defined (HAVE___SECURE_GETENV) && !defined (DISABLE_SECURE_GETENV)
+        /* 
+         * Use secure_getenv, unless the DISABLE_SECURE_GETENV is defined
+         * secure_getenv (when available) is used by default unless DISABLE_SECURE_GETENV is defined
+         * by the person building this library.
+         * See https://linux.die.net/man/3/secure_getenv for reasons to disable it.
+        */
+        posixly_correct = (__secure_getenv(posixlycorrectenv) != NULL);
 #else
         posixly_correct = (getenv(posixlycorrectenv) != NULL);
 #endif
