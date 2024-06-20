@@ -67,7 +67,11 @@ if compiler.get_id().contains('gcc') or compiler.get_id().contains('clang')
   '-Wtrampolines', #GCC only at this time
   '-Werror=implicit',
   '-Werror=incompatible-pointer-types',
-  '-Werror=int-conversion'
+  '-Werror=int-conversion',
+  '-Woverlength-strings',
+  '-Wnewline-eof',
+  '-Wc23-extensions', #We want this warning from Clang for now since we want to keep this as portable to old environments with C89 as possible.
+  '-Wparentheses'
   ]
 
   if compiler.get_id().contains('gcc') and target_machine.system() == 'windows'
