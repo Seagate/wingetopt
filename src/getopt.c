@@ -357,9 +357,13 @@ permute_args(int panonopt_start, int panonopt_end, int opt_end,
                 pos += nopts;
             swap = nargv[pos];
             /* LINTED const cast */
-            ((char **) nargv)[pos] = nargv[cstart];
+            /* to perform a const case in C, first cast to uintptr_t, then the necessary type */
+            /* -Wcast-qual will not warn about this when done this way */
+            ((char **)(uintptr_t)nargv)[pos] = nargv[cstart];
             /* LINTED const cast */
-            ((char **)nargv)[cstart] = swap;
+            /* to perform a const case in C, first cast to uintptr_t, then the necessary type */
+            /* -Wcast-qual will not warn about this when done this way */
+            ((char **)(uintptr_t)nargv)[cstart] = swap;
         }
     }
 }
