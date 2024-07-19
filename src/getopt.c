@@ -327,6 +327,34 @@ gcd(int a, int b)
     return (b);
 }
 
+static size_t getopt_strlen(const char* str)
+{
+    if (str)
+    {
+        #if defined (SIZE_MAX)
+            const char* found = memchr(str, '\0', SIZE_MAX);
+        #else
+            const char* found = memchr(str, '\0', (size_t)(-1));
+        #endif
+        if (found != NULL)
+        {
+            return (size_t)((uintptr_t)found - (uintptr_t)str);
+        }
+        else
+        {
+            #if defined (SIZE_MAX)
+                return SIZE_MAX;
+            #else
+                return (size_t)(-1);
+            #endif
+        }
+    }
+    else
+    {
+        return 0;
+    }
+}
+
 /*
  * Exchange the block from nonopt_start to nonopt_end with the block
  * from nonopt_end to opt_end (keeping the same order of arguments
@@ -393,7 +421,7 @@ parse_long_options(char * const *nargv, const char *options,
         current_argv_len = (uintptr_t)has_equal - (uintptr_t)current_argv;
         has_equal++;
     } else
-        current_argv_len = strlen(current_argv);
+        current_argv_len = getopt_strlen(current_argv);
 
     for (i = 0; long_options[i].name; i++) {
         /* find matching long option */
@@ -401,7 +429,7 @@ parse_long_options(char * const *nargv, const char *options,
             current_argv_len))
             continue;
 
-        if (strlen(long_options[i].name) == current_argv_len) {
+        if (getopt_strlen(long_options[i].name) == current_argv_len) {
             /* exact match */
             match = i;
             exact_match = 1;
