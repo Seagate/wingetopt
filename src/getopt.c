@@ -331,10 +331,16 @@ static size_t getopt_strlen(const char* str)
 {
     if (str)
     {
-        #if defined (SIZE_MAX)
-            const char* found = memchr(str, '\0', SIZE_MAX);
+        #if defined (RSIZE_MAX)
+            const char* found = memchr(str, '\0', RSIZE_MAX);
+        #elif defined (SIZE_MAX)
+            //Note dividing SIZE_MAX by 2 to prevent a warning about
+            //stringop maximum object size.
+            const char* found = memchr(str, '\0', SIZE_MAX >> 1);
         #else
-            const char* found = memchr(str, '\0', (size_t)(-1));
+            //Note dividing SIZE_MAX by 2 to prevent a warning about
+            //stringop maximum object size.
+            const char* found = memchr(str, '\0', ((size_t)(-1)) >> 1);
         #endif
         if (found != NULL)
         {
@@ -342,10 +348,12 @@ static size_t getopt_strlen(const char* str)
         }
         else
         {
-            #if defined (SIZE_MAX)
-                return SIZE_MAX;
+            #if defined (RSIZE_MAX)
+                return RSIZE_MAX;
+            #elif defined (SIZE_MAX)
+                return SIZE_MAX >> 1;
             #else
-                return (size_t)(-1);
+                return ((size_t)(-1)) >> 1;
             #endif
         }
     }
