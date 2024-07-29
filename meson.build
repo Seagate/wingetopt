@@ -14,11 +14,25 @@ project(
 )
 
 compiler = meson.get_compiler('c')
+cpp = meson.get_compiler('cpp')
 
 c_args = []
 
 warning_flags = [ ]
 linker_flags = [ ] #additional linker flags to add per-compiler for hardening.
+
+if cpp.get_id().contains('gcc')
+  if cpp.version().version_compare('<5.0')
+    if cpp.has_argument('-std=gnu++11')
+      # Add this argument to the list since C++11 is a minimum required C++ compiler standard
+      add_project_arguments('-std=gnu++11', language: 'cpp')
+    else
+      error('C++11/GNU++11 standard is required but was not able to be set!')
+    endif
+  endif
+endif
+
+
 
 if compiler.get_id().contains('gcc') or compiler.get_id().contains('clang')
   #TODO: Add -Wcast-align=strict and fix these issues to help ensure better portability
