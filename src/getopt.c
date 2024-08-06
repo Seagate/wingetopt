@@ -172,7 +172,7 @@ static int parse_long_options(char * const *, const char *,
 static int gcd(int, int);
 static void permute_args(int, int, int, char * const *);
 
-static char *place = EMSG; /* option letter processing */
+static char *place = (char*)(uintptr_t)EMSG; /* option letter processing */
 
 /* XXX: set optreset to 1 rather than these two */
 static int nonopt_start = -1; /* first non option argument (for permute) */
@@ -619,7 +619,7 @@ start:
     if (optreset || !*place) {		/* update scanning pointer */
         optreset = 0;
         if (optind >= nargc) {          /* end of argument vector */
-            place = EMSG;
+            place = (char*)(uintptr_t)EMSG;
             if (nonopt_end != -1) {
                 /* do permutation, if we have to */
                 permute_args(nonopt_start, nonopt_end,
@@ -638,7 +638,7 @@ start:
         }
         if (*(place = nargv[optind]) != '-' ||
             (place[1] == '\0' && strchr(options, '-') == NULL)) {
-            place = EMSG;		/* found non-option */
+            place = (char*)(uintptr_t)EMSG;		/* found non-option */
             if (flags & FLAG_ALLARGS) {
                 /*
                  * GNU extension:
@@ -676,7 +676,7 @@ start:
          */
         if (place[1] != '\0' && *++place == '-' && place[1] == '\0') {
             optind++;
-            place = EMSG;
+            place = (char*)(uintptr_t)EMSG;
             /*
              * We found an option (--), so if we skipped
              * non-options, we have to permute.
@@ -708,7 +708,7 @@ start:
         optchar = parse_long_options(nargv, options, long_options,
             idx, short_too, flags);
         if (optchar != -1) {
-            place = EMSG;
+            place = (char*)(uintptr_t)EMSG;
             return (optchar);
         }
     }
@@ -735,7 +735,7 @@ start:
         if (*place)			/* no space */
             /* NOTHING */;
         else if (++optind >= nargc) {	/* no arg */
-            place = EMSG;
+            place = (char*)(uintptr_t)EMSG;
             if (PRINT_ERROR)
                 getopt_warnx(GETOPT_ERR_MSG_RECARGCHAR, optchar);
             optopt = optchar;
@@ -744,7 +744,7 @@ start:
             place = nargv[optind];
         optchar = parse_long_options(nargv, options, long_options,
             idx, 0, flags);
-        place = EMSG;
+        place = (char*)(uintptr_t)EMSG;
         return (optchar);
     }
     if (*++oli != ':') {			/* doesn't take argument */
@@ -756,7 +756,7 @@ start:
             optarg = place;
         else if (oli[1] != ':') {	/* arg not optional */
             if (++optind >= nargc) {	/* no arg */
-                place = EMSG;
+                place = (char*)(uintptr_t)EMSG;
                 if (PRINT_ERROR)
                     getopt_warnx(GETOPT_ERR_MSG_RECARGCHAR, optchar);
                 optopt = optchar;
@@ -764,7 +764,7 @@ start:
             } else
                 optarg = nargv[optind];
         }
-        place = EMSG;
+        place = (char*)(uintptr_t)EMSG;
         ++optind;
     }
     /* dump back option letter */
