@@ -28,20 +28,22 @@ if compiler.get_id().contains('gcc') or compiler.get_id().contains('clang')
   #NOTE: 4/4/2024 - adding flags from https://best.openssf.org/Compiler-Hardening-Guides/Compiler-Options-Hardening-Guide-for-C-and-C++
   warning_flags = [
   #	'-Wcast-align=strict',
-    '-Wshadow=compatible-local',
-    '-Wvla',
-    '-Wfloat-equal',
-    '-Wnull-dereference',
-    '-Wunused-const-variable',
-    '-Wduplicated-cond',
-    '-Wjump-misses-init',
-    '-Wstringop-overflow',
-    '-Wlogical-op',
+  '-Wshadow=compatible-local',
+  '-Wvla',
+  '-Wfloat-equal',
+  '-Wnull-dereference',
+  '-Wunused-const-variable',
+  '-Wunused-parameter',
+  '-Wunused-value',
+  '-Wduplicated-cond',
+  '-Wjump-misses-init',
+  '-Wstringop-overflow',
+  '-Wlogical-op',
   '-Wshift-overflow',
   '-Wshift-overflow=1',
-    '-Wshift-overflow=2',
-    '-Wdouble-promotion',
-    '-Wformat-security',
+  '-Wshift-overflow=2',
+  '-Wdouble-promotion',
+  '-Wformat-security',
   '-Wold-style-definition',
   '-Wstrict-prototypes',
   '-Wmissing-declarations',
@@ -50,10 +52,10 @@ if compiler.get_id().contains('gcc') or compiler.get_id().contains('clang')
   '-Wundef',
   '-Wformat',
   '-Wformat=2',
-  '-Wsign-conversion',
   '-Wint-conversion',#-Warith-conversion
   '-Wenum-conversion',
   '-Wfloat-conversion',
+  '-Wint-to-pointer-cast',
   '-Wimplicit-fallthrough',
   '-D_GLIBCXX_ASSERTIONS',
   '-fstrict-flex-arrays=1', #NOTE: Using level 1 since Windows often uses [1] at the end of it's structures. opensea-*libs has used this in a few places too.
@@ -65,14 +67,35 @@ if compiler.get_id().contains('gcc') or compiler.get_id().contains('clang')
   '-Wtrampolines', #GCC only at this time
   '-Werror=implicit',
   '-Werror=incompatible-pointer-types',
+  '-Wincompatible-pointer-types-discards-qualifiers',
   '-Werror=int-conversion',
+  '-Werror=implicit-int',
   '-Woverlength-strings',
   '-Wnewline-eof',
   '-Wno-c23-extensions', #We do not want this warning since we are already checking for when C23 extensions are available before we use them. If not, we use a compiler specific definition, or make it an empty definition.
   '-Wparentheses',
   '-Wextra-semi',
-  '-Wcast-qual'
+  '-Wcast-qual',
+  '-Werror=sometimes-uninitialized',
+  '-Wuninitialized',
+  '-Wunevaluated-expression',
+  '-Wunsequenced',
+  '-Wvarargs',
+  '-Wwrite-strings',
+  '-Wrestrict',
+  '-Wstringop-truncation',
+  '-Werror=trigraphs',
+  '-Wunreachable-code',
+  '-Wcomment',
+  '-Wsequence-point',
+  '-Wreturn-type',
+  '-fvisibility=hidden', #to work similarly to Window's DLL import/export
   ]
+
+  if compiler.get_id().contains('gcc') and compiler.version().version_compare('>=10.0')
+    #only enable the sign conversion warning on versions 10 and up because it is way too noisy on earlier GCC versions than it is useful-TJE
+    warning_flags += '-Wsign-conversion'
+  endif
 
   if compiler.get_id().contains('gcc') and target_machine.system() == 'windows'
     #According to the link below, this is not needed in Windows...it also causes a bug in some versions of GCC for Windows.
@@ -172,13 +195,16 @@ elif compiler.get_id().contains('msvc')
     '/we4628', # digraphs not supported with -Ze. Character sequence 'digraph' not interpreted as alternate token for 'char'
     '/we4289', # nonstandard extension used : 'var' : loop control variable declared in the for-loop is used outside the for-loop scope
     '/we4464', # relative include path contains '..'
-    '/std:c17', #NOTE: It would be better to specify for the project settings above for all compilers, but currently still supporting MSVC and GCC compilers that may not be C11 compatible.-TJE
     '/GS', #security cookie for stack protection
     '/sdl', #adds recommended security development lifecycle checks
     '/Qspectre',
     '/guard:cf', #control flow guard
     '/d2guard4', #control flow guard
   ]
+
+  if compiler.has_argument('/std:c17')
+    c_std = 'c17'
+  endif
 
   linker_flags += [
     '/guard:cf', #control flow guard
