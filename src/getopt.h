@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: BSD-2-Clause  */
 /* Modifications Copyright 2022 Seagate Technology and/or its Affiliates */
 
 /*	$OpenBSD: getopt.h,v 1.3 2013/11/22 21:32:49 millert Exp $	*/
