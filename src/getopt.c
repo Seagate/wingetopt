@@ -93,7 +93,17 @@ typedef unsigned long uintptr_t;
 #endif
 #endif // checking for stdint
 #if defined(_WIN32)
+#if defined(_MSC_VER) && !defined(__clang__)
+#define DISABLE_WARNING_4255 _Pragma("warning(push)") _Pragma("warning(disable: 4255)")
+
+#define RESTORE_WARNING_4255 _Pragma("warning(pop)")
+#else
+#define DISABLE_WARNING_4255
+#define RESTORE_WARNING_4255
+#endif //_MSVC && !clang workaround for Windows API headers
+DISABLE_WARNING_4255
 #include <windows.h>
+RESTORE_WARNING_4255
 #else
 #include <libgen.h> /*for basename*/
 #endif              /*_WIN32*/
