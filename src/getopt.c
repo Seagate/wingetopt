@@ -94,7 +94,7 @@ typedef unsigned long uintptr_t;
 #endif // checking for stdint
 #if defined(_WIN32)
 #if defined(_MSC_VER) && !defined(__clang__)
-#define DISABLE_WARNING_4255 __pragma(warning(push)) __pragma(warning(disable: 4255))
+#define DISABLE_WARNING_4255 __pragma(warning(push)) __pragma(warning(disable : 4255))
 
 #define RESTORE_WARNING_4255 __pragma(warning(pop))
 #else
