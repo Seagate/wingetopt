@@ -156,7 +156,7 @@ char* optarg;   /* argument associated with option */
 #if defined(__CYGWIN__)
 extern char __declspec(dllimport) * __progname; // NOLINT
 #else
-extern const char*         __progname; // NOLINT
+extern const char* __progname; // NOLINT
 #endif
 #if !defined(HAS_PROGNAME)
 #define HAS_PROGNAME
@@ -216,7 +216,7 @@ static char* getopt_getprogname(void)
 #if defined(HAS_PROGNAME)
     return strdup(__progname);
 #elif defined(HAS_ARGV0)
-                                                /*Win32 most likely*/
+    /*Win32 most likely*/
 #if defined(_MSC_VER)
     return _strdup(__argv[0]);
 #else  /*mingw???*/
