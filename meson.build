@@ -238,20 +238,19 @@ if compiler.has_header('stdint.h')
   add_project_arguments('-DHAVE_STD_INT', language : 'c')
 endif
 
-if compiler.has_header_symbol('stdlib.h', '__STDC_LIB_EXT1__')
+if compiler.has_header_symbol('stddef.h', '__STDC_LIB_EXT1__') or compiler.has_header_symbol('stdlib.h', '__STDC_LIB_EXT1__')
   add_project_arguments(['-D__STDC_WANT_LIB_EXT1__=1'], language : 'c')
-endif
+  if compiler.has_function('fprintf_s', prefix : '#define __STDC_WANT_LIB_EXT1__ 1\n#include <stdio.h>\n')
+    add_project_arguments(['-DHAVE_FPRINTF_S'], language : 'c')
+  endif
 
-if compiler.has_function('fprintf_s', prefix : '#define __STDC_WANT_LIB_EXT1__ 1\n#include <stdio.h>\n')
-  add_project_arguments(['-DHAVE_FPRINTF_S'], language : 'c')
-endif
+  if compiler.has_function('vfprintf_s', prefix : '#define __STDC_WANT_LIB_EXT1__ 1\n#include <stdio.h>\n')
+    add_project_arguments(['-DHAVE_VFPRINTF_S'], language : 'c')
+  endif
 
-if compiler.has_function('vfprintf_s', prefix : '#define __STDC_WANT_LIB_EXT1__ 1\n#include <stdio.h>\n')
-  add_project_arguments(['-DHAVE_VFPRINTF_S'], language : 'c')
-endif
-
-if compiler.has_function('getenv_s', prefix : '#define __STDC_WANT_LIB_EXT1__ 1\n#include <stdlib.h>\n')
-  add_project_arguments(['-DHAVE_GETENV_S'], language : 'c')
+  if compiler.has_function('getenv_s', prefix : '#define __STDC_WANT_LIB_EXT1__ 1\n#include <stdlib.h>\n')
+    add_project_arguments(['-DHAVE_GETENV_S'], language : 'c')
+  endif
 elif compiler.has_function('secure_getenv', prefix : '#define _GNU_SOURCE\n#include <stdlib.h>\n')
   #TODO: check if user has disabled using this function through compile option
   add_project_arguments(['-D_GNU_SOURCE', '-DHAVE_SECURE_GETENV'], language : 'c')
