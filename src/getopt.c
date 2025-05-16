@@ -213,7 +213,7 @@ char* getopt_progname;
 
 static char* getopt_getprogname(void)
 {
-    const char *progname = NULL;
+    const char* progname = NULL;
 #if defined(HAS_PROGNAME)
     progname = __progname;
 #elif defined(HAS_ARGV0)
@@ -230,8 +230,8 @@ static char* getopt_getprogname(void)
     if (progname != NULL)
     {
         char* execfullname = strdup(progname);
-        char* execname = strdup(basename(execfullname)); /* basename can return internal pointers, modified memory, may get
-                                                            changed, so dup it to return this just in case -TJE */
+        char* execname = strdup(basename(execfullname)); /* basename can return internal pointers, modified memory, may
+                                                            get changed, so dup it to return this just in case -TJE */
         free(execfullname);
         return execname;
     }
@@ -243,26 +243,26 @@ static char* getopt_getprogname(void)
     if (progname == NULL)
     {
 #if defined(_DEBUG)
-        #if defined(_MSC_VER)
+#if defined(_MSC_VER)
         return _strdup("Unknown progname");
-        #else
-        return strdup("Unknown progname");
-        #endif
 #else
-        #if defined(_MSC_VER)
-            return _strdup("");
-        #else
-            return strdup("");
-        #endif
+        return strdup("Unknown progname");
+#endif
+#else
+#if defined(_MSC_VER)
+        return _strdup("");
+#else
+        return strdup("");
+#endif
 #endif
     }
     else
     {
-        #if defined(_MSC_VER)
+#if defined(_MSC_VER)
         return _strdup(progname);
-        #else
+#else
         return strdup(progname);
-        #endif
+#endif
     }
 }
 
