@@ -213,41 +213,57 @@ char* getopt_progname;
 
 static char* getopt_getprogname(void)
 {
+    const char *progname = NULL;
 #if defined(HAS_PROGNAME)
-    return strdup(__progname);
+    progname = __progname;
 #elif defined(HAS_ARGV0)
     /*Win32 most likely*/
 #if defined(_MSC_VER)
-    return _strdup(__argv[0]);
+    progname = __argv[0];
 #else  /*mingw???*/
-    return strdup(__argv[0]);
+    progname = __argv[0];
 #endif /*_MSC_VER*/
 #elif defined(HAS_GETPROGNAME)
-    const char* progname = getprogname();
+    progname = getprogname();
+#elif defined(HAS_GETEXECNAME)
+    progname = getexecname();
+    if (progname != NULL)
+    {
+        char* execfullname = strdup(progname);
+        char* execname = strdup(basename(execfullname)); /* basename can return internal pointers, modified memory, may get
+                                                            changed, so dup it to return this just in case -TJE */
+        free(execfullname);
+        return execname;
+    }
+#elif defined(NEED_PROGNAME)
+    /* own global declared that can be accessed -TJE */
+    progname = getopt_progname;
+#else /*This is the "we don't know how to get this" case. */
+#endif
     if (progname == NULL)
     {
-        return strdup("");
+#if defined(_DEBUG)
+        #if defined(_MSC_VER)
+        return _strdup("Unknown progname");
+        #else
+        return strdup("Unknown progname");
+        #endif
+#else
+        #if defined(_MSC_VER)
+            return _strdup("");
+        #else
+            return strdup("");
+        #endif
+#endif
     }
     else
     {
+        #if defined(_MSC_VER)
+        return _strdup(progname);
+        #else
         return strdup(progname);
+        #endif
     }
-#elif defined(HAS_GETEXECNAME)
-    char* execfullname = strdup(getexecname());
-    char* execname = strdup(basename(execfullname)); /* basename can return internal pointers, modified memory, may get
-                                                        changed, so dup it to return this just in case -TJE */
-    free(execfullname);
-    return execname;
-#elif defined(NEED_PROGNAME)
-    /* own global declared that can be accessed -TJE */
-    return strdup(getopt_progname);
-#else /*This is the "we don't know how to get this" case. */
-#if defined(_DEBUG)
-    return strdup("Unknown progname");
-#else
-    return strdup("");
-#endif
-#endif
 }
 
 /*
