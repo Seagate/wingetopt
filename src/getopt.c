@@ -223,7 +223,15 @@ static char* getopt_getprogname(void)
     return strdup(__argv[0]);
 #endif /*_MSC_VER*/
 #elif defined(HAS_GETPROGNAME)
-    return strdup(getprogname());
+    const char* progname = getprogname();
+    if (progname == NULL)
+    {
+        return strdup("");
+    }
+    else
+    {
+        return strdup(progname);
+    }
 #elif defined(HAS_GETEXECNAME)
     char* execfullname = strdup(getexecname());
     char* execname = strdup(basename(execfullname)); /* basename can return internal pointers, modified memory, may get
