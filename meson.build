@@ -59,7 +59,6 @@ if compiler.get_id().contains('gcc') or compiler.get_id().contains('clang')
   '-Wimplicit-fallthrough',
   '-D_GLIBCXX_ASSERTIONS',
   '-fstrict-flex-arrays=1', #NOTE: Using level 1 since Windows often uses [1] at the end of it's structures. opensea-*libs has used this in a few places too.
-  '-fstack-protector-strong',
   '-fno-delete-null-pointer-checks',
   '-fno-strict-overflow',
   '-fno-strict-aliasing',
@@ -95,6 +94,19 @@ if compiler.get_id().contains('gcc') or compiler.get_id().contains('clang')
   if compiler.get_id().contains('gcc') and compiler.version().version_compare('>=10.0')
     #only enable the sign conversion warning on versions 10 and up because it is way too noisy on earlier GCC versions than it is useful-TJE
     warning_flags += '-Wsign-conversion'
+  endif
+
+  if target_machine.system() != 'sunos'
+    warning_flags += '-fstack-protector-strong'
+  else
+    #Illumos will support this, but solaris will not due to library differences in the systems
+    if meson.version().version_compare('>=1.2.0')
+      if target_machine.kernel() == 'illumos'
+        warning_flags += '-fstack-protector-strong'
+      endif
+    else
+    # TODO: Backup method to detect illumos vs solaris
+    endif
   endif
 
   if compiler.get_id().contains('gcc') and target_machine.system() == 'windows'
@@ -238,20 +250,19 @@ if compiler.has_header('stdint.h')
   add_project_arguments('-DHAVE_STD_INT', language : 'c')
 endif
 
-if compiler.has_header_symbol('stdlib.h', '__STDC_LIB_EXT1__')
+if compiler.has_header_symbol('stddef.h', '__STDC_LIB_EXT1__') or compiler.has_header_symbol('stdlib.h', '__STDC_LIB_EXT1__')
   add_project_arguments(['-D__STDC_WANT_LIB_EXT1__=1'], language : 'c')
-endif
+  if compiler.has_function('fprintf_s', prefix : '#define __STDC_WANT_LIB_EXT1__ 1\n#include <stdio.h>\n')
+    add_project_arguments(['-DHAVE_FPRINTF_S'], language : 'c')
+  endif
 
-if compiler.has_function('fprintf_s', prefix : '#define __STDC_WANT_LIB_EXT1__ 1\n#include <stdio.h>\n')
-  add_project_arguments(['-DHAVE_FPRINTF_S'], language : 'c')
-endif
+  if compiler.has_function('vfprintf_s', prefix : '#define __STDC_WANT_LIB_EXT1__ 1\n#include <stdio.h>\n')
+    add_project_arguments(['-DHAVE_VFPRINTF_S'], language : 'c')
+  endif
 
-if compiler.has_function('vfprintf_s', prefix : '#define __STDC_WANT_LIB_EXT1__ 1\n#include <stdio.h>\n')
-  add_project_arguments(['-DHAVE_VFPRINTF_S'], language : 'c')
-endif
-
-if compiler.has_function('getenv_s', prefix : '#define __STDC_WANT_LIB_EXT1__ 1\n#include <stdlib.h>\n')
-  add_project_arguments(['-DHAVE_GETENV_S'], language : 'c')
+  if compiler.has_function('getenv_s', prefix : '#define __STDC_WANT_LIB_EXT1__ 1\n#include <stdlib.h>\n')
+    add_project_arguments(['-DHAVE_GETENV_S'], language : 'c')
+  endif
 elif compiler.has_function('secure_getenv', prefix : '#define _GNU_SOURCE\n#include <stdlib.h>\n')
   #TODO: check if user has disabled using this function through compile option
   add_project_arguments(['-D_GNU_SOURCE', '-DHAVE_SECURE_GETENV'], language : 'c')
