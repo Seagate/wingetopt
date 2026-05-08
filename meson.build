@@ -191,7 +191,7 @@ elif compiler.get_id().contains('msvc')
     '/w14777', # 'function' : format string 'string' requires an argument of type 'type1', but variadic argument number has type 'type2'
     '/w14826', # Conversion from 'type1' to 'type2' is sign-extended. This may cause unexpected runtime behavior (more -wconversion)
     '/w15219', # implicit conversion from 'type-1' to 'type-2', possible loss of data (-wconversion)
-    '/w15240', # 'attribute-name': attribute is ignored in this syntactic position 
+    '/w15240', # 'attribute-name': attribute is ignored in this syntactic position
     '/w15245', # 'function': unreferenced function with internal linkage has been removed
     '/w14555', # expression has no effect; expected expression with side-effect
     '/w15264', # 'variable-name': 'const' variable is not used
@@ -219,8 +219,11 @@ elif compiler.get_id().contains('msvc')
     warning_flags += '/QIntel-jcc-erratum'
   endif
 
+  # If this MSVC version supports /std:c17, force C17 mode. MSVC defaults to a
+  # pre-C99 dialect without this flag, which means _Generic and other C11/C17
+  # features are unavailable even though the compiler supports them.
   if compiler.has_argument('/std:c17')
-    c_std = 'c17'
+    warning_flags += '/std:c17'
   endif
 
   linker_flags += [
