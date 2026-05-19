@@ -1,0 +1,6 @@
+// cpp.hint for wingetopt
+// MSVC Browsing Database Parser hint file.
+// WINGETOPT_API expands to __declspec(dllexport/dllimport) or empty and
+// is used on all public variable and function declarations in getopt.h.
+
+#define WINGETOPT_API
